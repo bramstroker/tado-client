@@ -10,9 +10,8 @@ namespace Stroker\Tado\Command;
 
 use Stroker\Tado\Client\ClientInterface;
 use Stroker\Tado\Type\Device;
-use Stroker\Tado\Type\User;
 
-class GetDevices implements CommandInterface
+class GetUsers implements CommandInterface
 {
     /**
      * Send command

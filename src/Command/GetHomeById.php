@@ -41,6 +41,7 @@ class GetHomeById implements CommandInterface
         return new Home(
             $this->homeId,
             $response['name'],
+            $response,
             $client
         );
     }
