@@ -92,6 +92,10 @@ class HttpClient implements ClientInterface
             $options
         );
 
+        if ($response->getStatusCode() !== 200) {
+            throw new \Exception('Invalid response: ' . $response->getBody());
+        }
+
         $body = (string) $response->getBody();
         if (empty($body)) {
             return [];

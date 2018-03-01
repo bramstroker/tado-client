@@ -13,6 +13,9 @@ namespace Stroker\Tado\Type;
  */
 class SensorData extends AbstractType
 {
-    const SENSORTYPE_TEMPERATURE = 'temperature';
-    const SENSORTYPE_PERCENTAGE = 'percentage';
+    const UNITTYPE_TEMPERATURE = 'temperature';
+    const UNITTYPE_PERCENTAGE = 'percentage';
+
+    const SENSORTYPE_INSIDETEMP = 'insideTemperature';
+    const SENSORTYPE_HUMIDITY = 'humidity';
 }

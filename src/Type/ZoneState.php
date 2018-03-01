@@ -30,11 +30,14 @@ class ZoneState extends AbstractType
     }
 
     /**
-     * @return SensorData[]
+     * @return SensorData
      */
-    public function getSensorData()
+    public function getSensorData(string $key)
     {
-        return $this->sensorData;
+        if (!isset($this->sensorData[$key])) {
+            return new SensorData();
+        }
+        return $this->sensorData[$key];
     }
 
     /**
