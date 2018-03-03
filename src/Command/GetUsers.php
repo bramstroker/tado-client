@@ -10,6 +10,7 @@ namespace Stroker\Tado\Command;
 
 use Stroker\Tado\Client\ClientInterface;
 use Stroker\Tado\Type\Device;
+use Stroker\Tado\Type\User;
 
 class GetUsers implements CommandInterface
 {
@@ -18,11 +19,13 @@ class GetUsers implements CommandInterface
      *
      * @param ClientInterface $client
      * @return Device[]
-     * @todo implement
      */
     public function send(ClientInterface $client)
     {
         $response = $client->sendRequest('api/v2/homes/{home_id}/users');
-        return [];
+        $users = [];
+        foreach ($response as $userData) {
+            $users[] = new User($userData['id'], $userData);
+        }
     }
 }

@@ -8,23 +8,12 @@
 
 namespace Stroker\Tado\Type;
 
+/**
+ * @method string getName()
+ * @method string getLocale()
+ */
 class User extends AbstractType
 {
-    /**
-     * @var string
-     */
-    private $name;
-
-    /**
-     * @var string
-     */
-    private $email;
-
-    /**
-     * @var string
-     */
-    private $username;
-
     /**
      * @var string
      */
@@ -36,35 +25,23 @@ class User extends AbstractType
     private $homes = [];
 
     /**
-     * @var string
-     */
-    private $locale;
-
-    /**
      * @var MobileDevice[]
      */
     private $mobileDevices = [];
 
     /**
      * Zone constructor.
-     * @param string $name
-     * @param string $email
-     * @param string $username
      * @param string $id
-     * @param string $locale
+     * @param array $attributes
      * @param array $homes
      * @param array $mobileDevices
      */
-    public function __construct(string $name, string $email, string $username, string $id, string $locale, array $homes = [], array $mobileDevices = [])
+    public function __construct(string $id, array $attributes, array $homes = [], array $mobileDevices = [])
     {
-        $this->name = $name;
-        $this->email = $email;
-        $this->username = $username;
         $this->id = $id;
-        $this->locale = $locale;
         $this->homes = $homes;
         $this->mobileDevices = $mobileDevices;
-        parent::__construct([]);
+        parent::__construct($attributes);
     }
 
     /**

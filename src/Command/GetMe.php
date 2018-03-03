@@ -44,10 +44,7 @@ class GetMe implements CommandInterface
 
         return new User(
             $response['name'],
-            $response['email'],
-            $response['username'],
-            $response['id'],
-            $response['locale'],
+            $response,
             $homes,
             $mobileDevices
         );

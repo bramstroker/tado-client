@@ -9,9 +9,7 @@
 namespace Stroker\Tado\Command;
 
 use Stroker\Tado\Client\ClientInterface;
-use Stroker\Tado\Type\Device;
 use Stroker\Tado\Type\MobileDevice;
-use Stroker\Tado\Type\Zone;
 
 class GetMobileDevices implements CommandInterface
 {
