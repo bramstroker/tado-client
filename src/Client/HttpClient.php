@@ -11,13 +11,18 @@ namespace Stroker\Tado\Client;
 
 use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\RequestOptions;
-use Stroker\Tado\Command\EndSetTemperature;
+use League\OAuth2\Client\Provider\AbstractProvider;
+use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
+use League\OAuth2\Client\Provider\GenericProvider;
+use League\OAuth2\Client\Token\AccessToken;
 use Stroker\Tado\Command\GetDevices;
 use Stroker\Tado\Command\GetHomeById;
 use Stroker\Tado\Command\GetMe;
 use Stroker\Tado\Command\GetMobileDevices;
 use Stroker\Tado\Command\GetWeather;
 use Stroker\Tado\Command\GetZones;
+use Stroker\Tado\Exception\ExceptionInterface;
+use Stroker\Tado\Exception\InvalidResponseException;
 use Stroker\Tado\Type\Device;
 use Stroker\Tado\Type\Home;
 use Stroker\Tado\Type\MobileDevice;
@@ -42,14 +47,9 @@ class HttpClient implements ClientInterface
     protected $credentials;
 
     /**
-     * @var string
+     * @var AccessToken
      */
     protected $accessToken;
-
-    /**
-     * @var int
-     */
-    protected $tokenExpires;
 
     /**
      * HttpClient constructor.
@@ -67,10 +67,11 @@ class HttpClient implements ClientInterface
      * @param string $method
      * @param array $data
      * @return mixed
+     * @throws ExceptionInterface
      */
-    public function sendRequest(string $path, string $method = ClientInterface::METHOD_GET, array $data = [])
+    public function sendRequest(string $path, string $method = ClientInterface::METHOD_GET, array $data = []): array
     {
-        $accessToken = $this->getOauthToken();
+        $accessToken = $this->getAccessToken();
 
         if (preg_match('/{home_id}/', $path)) {
             $path = str_replace('{home_id}', $this->getHomeId(), $path);
@@ -78,7 +79,7 @@ class HttpClient implements ClientInterface
 
         $options = [
             'headers' => [
-                'Authorization' => 'Bearer ' . $accessToken,
+                'Authorization' => 'Bearer ' . $accessToken->getToken(),
             ]
         ];
 
@@ -93,7 +94,7 @@ class HttpClient implements ClientInterface
         );
 
         if ($response->getStatusCode() !== 200) {
-            throw new \Exception('Invalid response: ' . $response->getBody());
+            throw new InvalidResponseException('Invalid response: ' . $response->getBody());
         }
 
         $body = (string) $response->getBody();
@@ -104,40 +105,48 @@ class HttpClient implements ClientInterface
     }
 
     /**
-     * @return string
+     * @return AccessToken
      */
-    public function getOauthToken(): string
+    public function getAccessToken(): AccessToken
     {
-        $isTokenExpired = time() > $this->tokenExpires;
-        if ($this->accessToken !== null && !$isTokenExpired) {
+        if ($this->accessToken !== null) {
+
+            if ($this->accessToken->hasExpired()) {
+                $this->accessToken = $this->getOAuthProvider()->getAccessToken('refresh_token', [
+                    'refresh_token' => $this->accessToken->getRefreshToken()
+                ]);
+            }
+
             return $this->accessToken;
         }
 
-        // We haven't aquired a access token or the token has expired
-        $response = $this->getGuzzleClient()->request(
-            ClientInterface::METHOD_POST,
-            'oauth/token',
-            [
-                'form_params' => array_merge(
-                    $this->credentials->jsonSerialize(),
-                    [
-                        'grant_type' => 'password',
-                        'scope' => 'home.user'
-                    ]
-                )
-            ]
-        );
+        $this->accessToken = $this->getOAuthProvider()->getAccessToken('password', [
+            'username' => $this->credentials->getUsername(),
+            'password' => $this->credentials->getPassword(),
+            'scope' => 'home.user',
+        ]);
 
-        $json = \GuzzleHttp\json_decode($response->getBody(), true);
-        $this->accessToken = $json['access_token'];
-        $this->tokenExpires = time() + $json['expires_in'];
         return $this->accessToken;
+    }
+
+    /**
+     * @return AbstractProvider
+     */
+    public function getOAuthProvider(): AbstractProvider
+    {
+        return new GenericProvider([
+            'clientId'                => $this->credentials->getClientId(),
+            'clientSecret'            => $this->credentials->getClientSecret(),
+            'urlAuthorize'            => 'https://my.tado.com/oauth/token',
+            'urlAccessToken'          => 'https://my.tado.com/oauth/token',
+            'urlResourceOwnerDetails' => null,
+        ]);
     }
 
     /**
      * @return GuzzleClient
      */
-    public function getGuzzleClient()
+    public function getGuzzleClient(): GuzzleClient
     {
         return new GuzzleClient(
             [
@@ -147,9 +156,9 @@ class HttpClient implements ClientInterface
     }
 
     /**
-     * @return null
+     * @return int
      */
-    public function getHomeId()
+    public function getHomeId(): int
     {
         if ($this->homeId == null) {
             $me = (new GetMe())->send($this);
@@ -159,9 +168,9 @@ class HttpClient implements ClientInterface
     }
 
     /**
-     * @param null $homeId
+     * @param int $homeId
      */
-    public function setHomeId($homeId)
+    public function setHomeId(int $homeId)
     {
         $this->homeId = $homeId;
     }
@@ -177,7 +186,7 @@ class HttpClient implements ClientInterface
     /**
      * @return Zone[]
      */
-    public function getZones()
+    public function getZones(): array
     {
         return (new GetZones())->send($this);
     }
@@ -185,7 +194,7 @@ class HttpClient implements ClientInterface
     /**
      * @return null|Zone
      */
-    public function getHeatingZone()
+    public function getHeatingZone(): ?Zone
     {
         $zones = $this->getZones();
         foreach ($zones as $zone) {
@@ -207,7 +216,7 @@ class HttpClient implements ClientInterface
     /**
      * @return Device[]
      */
-    public function getDevices()
+    public function getDevices(): array
     {
         return (new GetDevices())->send($this);
     }
@@ -215,7 +224,7 @@ class HttpClient implements ClientInterface
     /**
      * @return MobileDevice[]
      */
-    public function getMobileDevices()
+    public function getMobileDevices(): array
     {
         return (new GetMobileDevices())->send($this);
     }
